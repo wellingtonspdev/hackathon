@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Usuario } from '@/lib/types';
 
+import { MOCK_USERS } from '@/lib/mock-data';
+
 interface AuthContextType {
   currentUser: Usuario | null;
   allUsers: Usuario[];
@@ -21,16 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('API não disponível');
       const data = await res.json();
       if (data.success && data.users.length > 0) {
         setAllUsers(data.users);
-        // Se ainda não tiver usuário salvo no localStorage, pega o primeiro (Ana Silva - aluna)
         const savedId = typeof window !== 'undefined' ? localStorage.getItem('agentec_user_id') : null;
         const selected = data.users.find((u: Usuario) => u.id === savedId) || data.users[0];
         setCurrentUser(selected);
+        return;
       }
-    } catch (e) {
-      console.error('Falha ao carregar usuários:', e);
+    } catch {
+      // Fallback para mock em ambientes estáticos como GitHub Pages
+      setAllUsers(MOCK_USERS);
+      const savedId = typeof window !== 'undefined' ? localStorage.getItem('agentec_user_id') : null;
+      const selected = MOCK_USERS.find((u: Usuario) => u.id === savedId) || MOCK_USERS[0];
+      setCurrentUser(selected);
     } finally {
       setIsLoading(false);
     }

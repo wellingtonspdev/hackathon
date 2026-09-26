@@ -1,5 +1,13 @@
-import type { NextConfig } from "next"
+import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {}
+const isGithubPages = process.env.GITHUB_PAGES === 'true';
 
-export default nextConfig
+const nextConfig: NextConfig = {
+  ...(isGithubPages ? {
+    output: 'export',
+    basePath: '/hackathon',
+    images: { unoptimized: true },
+  } : {}),
+};
+
+export default nextConfig;

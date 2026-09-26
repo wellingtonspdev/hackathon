@@ -6,6 +6,8 @@ import { SuggestionUser } from '@/lib/types';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { AcademicBadge, UserRolePill } from './academic-badge';
 
+import { MOCK_SUGGESTIONS } from '@/lib/mock-data';
+
 export function WhoToFollow() {
   const { currentUser } = useAuth();
   const [suggestions, setSuggestions] = useState<SuggestionUser[]>([]);
@@ -18,12 +20,16 @@ export function WhoToFollow() {
       if (!currentUser) return;
       try {
         const res = await fetch(`/api/users/suggestions?userId=${currentUser.id}`);
+        if (!res.ok) throw new Error('API não disponível');
         const data = await res.json();
-        if (isMounted && data.success) {
-          setSuggestions(data.suggestions || []);
+        if (isMounted && data.success && Array.isArray(data.suggestions)) {
+          setSuggestions(data.suggestions);
+          return;
         }
-      } catch (e) {
-        console.error('Erro ao buscar sugestões:', e);
+      } catch {
+        if (isMounted) {
+          setSuggestions(MOCK_SUGGESTIONS);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }

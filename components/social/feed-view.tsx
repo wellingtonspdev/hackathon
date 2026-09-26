@@ -8,6 +8,8 @@ import { PostCard } from './post-card';
 import { PostComposer } from './post-composer';
 import { Sparkles, Users, RefreshCw, Filter, X } from 'lucide-react';
 
+import { MOCK_POSTS } from '@/lib/mock-data';
+
 interface FeedViewProps {
   onOpenComposerModal?: () => void;
   selectedTag?: string | null;
@@ -28,12 +30,19 @@ export function FeedView({ onOpenComposerModal, selectedTag, onClearTag }: FeedV
 
     try {
       const res = await fetch(`/api/feed?tab=${activeTab}&userId=${currentUser.id}`);
+      if (!res.ok) throw new Error('API não disponível');
       const data = await res.json();
-      if (data.success) {
-        setPosts(data.posts || []);
+      if (data.success && Array.isArray(data.posts)) {
+        setPosts(data.posts);
+        return;
       }
-    } catch (e) {
-      console.error('Erro ao carregar o feed:', e);
+    } catch {
+      // Fallback para mock posts em modo estático / GitHub Pages
+      if (activeTab === 'following') {
+        setPosts(MOCK_POSTS.slice(0, 2));
+      } else {
+        setPosts(MOCK_POSTS);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
