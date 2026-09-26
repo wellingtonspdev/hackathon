@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome         String   @db.VarChar(150)
+  email        String   @unique @db.VarChar(150)
+  senhaHash    String   @map("senha_hash") @db.VarChar(255)
+  tipoUsuario  String   @map("tipo_usuario") @db.VarChar(20)
+  fotoPerfil   String?  @map("foto_perfil") @db.VarChar(255)
+  bio          String?
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  // Relações
+  badgesAtribuidos  UsuarioBadge[]   @relation("AtribuidoPor")
+  badges            UsuarioBadge[]   @relation("UsuarioBadges")
+  posts             Post[]
+  curtidas          Curtida[]
+  comentarios       Comentario[]
+  seguidores        Seguidor[]       @relation("Seguidor")
+  seguindo          Seguidor[]       @relation("Seguido")
+  notasAluno        Nota[]           @relation("AlunoNota")
+  notasLancadas     Nota[]           @relation("LancadoPorNota")
+  frequencia        Frequencia[]
+  solicitacoes      SolicitacaoDoc[]
+
+  @@map("usuarios")
+}
+
+model Badge {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome      String         @db.VarChar(60)
+  descricao String?        @db.VarChar(255)
+  corIcone  String?        @map("cor_icone") @db.VarChar(30)
+  usuarios  UsuarioBadge[]
+
+  @@map("badges")
+}
+
+model UsuarioBadge {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId    String   @map("usuario_id") @db.Uuid
+  badgeId      String   @map("badge_id") @db.Uuid
+  atribuidoPor String?  @map("atribuido_por") @db.Uuid
+  atribuidoEm  DateTime @default(now()) @map("atribuido_em")
+
+  usuario     Usuario  @relation("UsuarioBadges", fields: [usuarioId], references: [id], onDelete: Cascade)
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  atribuidor  Usuario? @relation("AtribuidoPor", fields: [atribuidoPor], references: [id])
+
+  @@unique([usuarioId, badgeId])
+  @@map("usuario_badges")
+}
+
+model Post {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId String       @map("usuario_id") @db.Uuid
+  conteudo  String
+  criadoEm  DateTime     @default(now()) @map("criado_em")
+
+  usuario   Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  curtidas  Curtida[]
+  comentarios Comentario[]
+
+  @@index([usuarioId])
+  @@map("posts")
+}
+
+model Curtida {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  usuarioId String   @map("usuario_id") @db.Uuid
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, usuarioId])
+  @@index([postId])
+  @@map("curtidas")
+}
+
+model Comentario {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  usuarioId String   @map("usuario_id") @db.Uuid
+  conteudo  String
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("comentarios")
+}
+
+model Seguidor {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seguidorId  String   @map("seguidor_id") @db.Uuid
+  seguidoId   String   @map("seguido_id") @db.Uuid
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  seguidor    Usuario  @relation("Seguidor", fields: [seguidorId], references: [id], onDelete: Cascade)
+  seguido     Usuario  @relation("Seguido", fields: [seguidoId], references: [id], onDelete: Cascade)
+
+  @@unique([seguidorId, seguidoId])
+  @@index([seguidorId])
+  @@index([seguidoId])
+  @@map("seguidores")
+}
+
+model Nota {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alunoId     String   @map("aluno_id") @db.Uuid
+  disciplina  String   @db.VarChar(100)
+  nota        Decimal  @db.Decimal(4,2)
+  semestre    String   @db.VarChar(10)
+  lancadoPor  String?  @map("lancado_por") @db.Uuid
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  aluno       Usuario  @relation("AlunoNota", fields: [alunoId], references: [id], onDelete: Cascade)
+  lancador    Usuario? @relation("LancadoPorNota", fields: [lancadoPor], references: [id])
+
+  @@index([alunoId])
+  @@map("notas")
+}
+
+model Frequencia {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alunoId       String   @map("aluno_id") @db.Uuid
+  disciplina    String   @db.VarChar(100)
+  totalAulas    Int      @default(0) @map("total_aulas")
+  faltas        Int      @default(0)
+  semestre      String   @db.VarChar(10)
+  atualizadoEm  DateTime @default(now()) @map("atualizado_em")
+
+  aluno         Usuario  @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+
+  @@index([alunoId])
+  @@map("frequencia")
+}
+
+model SolicitacaoDoc {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alunoId       String   @map("aluno_id") @db.Uuid
+  tipoDocumento String   @map("tipo_documento") @db.VarChar(100)
+  status        String   @default("pendente") @db.VarChar(20)
+  observacao    String?
+  solicitadoEm  DateTime @default(now()) @map("solicitado_em")
+  atualizadoEm  DateTime @default(now()) @map("atualizado_em")
+
+  aluno         Usuario  @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+
+  @@index([alunoId])
+  @@map("solicitacoes_doc")
+}
