@@ -2,9 +2,10 @@ import { Geist, Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
+import { AuthProvider } from "@/context/auth-context"
+import { cn } from "@/lib/utils"
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -18,12 +19,16 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className="bg-[#F5F5F5] text-[#171717] min-h-screen">
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
